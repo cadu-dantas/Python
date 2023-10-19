@@ -35,23 +35,24 @@ conn = snowflake.connector.connect(
 # Crie um cursor
 cur = conn.cursor()
 
-# Crie a tabela t_roliday no Snowflake se ela não existir
-cur.execute('CREATE OR REPLACE TABLE TRADE.TRANSIENT.t_holiday (date DATE, holiday_name STRING)')
+# Modifique a tabela t_roliday no Snowflake para incluir a coluna "region" se ela não existir
+cur.execute('CREATE OR REPLACE TABLE TRADE.TRANSIENT.t_holiday (date DATE, holiday_name STRING, region STRING)')
 
 # Calcule e insira os feriados nacionais e regionais em São Paulo e Barueri de 2020 a 2100
-for year in range(2020, 2101):
-    br_holidays = holidays.Brazil(years=year)
-    sp_holidays = holidays.Brazil(state='SP', years=year)
-    barueri_holidays = holidays.Brazil(years=year, observed=False)  # Substitua pelo calendário de Barueri
-
-    for date, name in br_holidays.items():
-        cur.execute("INSERT INTO TRADE.TRANSIENT.t_holiday (date, holiday_name) VALUES (%s, %s)", (date, name))
+for year in range(2020, 2101):   
+    sp_holidays = holidays.Brazil(state='SP', years=year)    
 
     for date, name in sp_holidays.items():
-        cur.execute("INSERT INTO TRADE.TRANSIENT.t_holiday (date, holiday_name) VALUES (%s, %s)", (date, name))
+        cur.execute("INSERT INTO TRADE.TRANSIENT.t_holiday (date, holiday_name, region) VALUES (%s, %s, 'São Paulo')", (date, name))
 
-    for date, name in barueri_holidays.items():
-        cur.execute("INSERT INTO TRADE.TRANSIENT.t_holiday (date, holiday_name) VALUES (%s, %s)", (date, name))
+    # Inserir o feriado "Aniversário de Barueri" em 26 de março para todos os anos
+    for year in range(2020, 2101):  # Ajuste o intervalo de anos conforme necessário
+        date = f'{year}-03-26'
+        name = "Aniversário de Barueri"
+        cur.execute("INSERT INTO t_holiday (date, holiday_name, region) VALUES (%s, %s, 'Barueri')", (date, name))
+
+# Confirme a transação
+cur.execute("COMMIT")
 
 # Feche o cursor e a conexão com o Snowflake
 cur.close()
